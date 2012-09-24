@@ -1,4 +1,3 @@
-# 
 ###############################################################################
 #package propFile provides facilities to manipulate Java style .properties 
 #files
