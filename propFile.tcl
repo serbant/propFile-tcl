@@ -110,7 +110,7 @@ itcl::class propFile {
     public method getProperty             {key}
     public method setProperties           {listKeysValues {fileHeader}}
     public method setProperty             {listKeyValue}
-    public method setSkelProperties       {{fileHeader}}
+    public method setSkelProperties       {{fileHeader ""}}
     
     # private methods
     private method isProperties           {propertiesFile {force 0}}
@@ -123,7 +123,7 @@ itcl::class propFile {
     public variable force                 0
     
     # private variables
-    private variable m_propertiesFile ""
+    private variable m_propertiesFile     ""
     private variable m_isProps            0
     private variable m_hasProps           0
     private variable m_osFilePathFragment ""
@@ -132,7 +132,6 @@ itcl::class propFile {
     private variable m_listProps          ""
     private variable m_listPropsValues    ""
     private variable m_defaultSeparator   ": "
-    
     
 }
 
@@ -147,7 +146,6 @@ itcl::configbody propFile::propertiesFile {
 	    }
 	}
     }
-    
 }
 
 itcl::body propFile::constructor {propertiesFile args} {
@@ -332,15 +330,20 @@ itcl::body propFile::getProperties {propertiesFile} {
 	    
 }
 
-itcl::body propFile::setSkelProperties {{fileHeader}} {
+itcl::body propFile::setSkelProperties {{fileHeader ""}} {
     
-    if {[string length $fileHeader] == 0} {
+    if {$m_isProps} {error "properties file exists already: $m_propertiesFile"}
+    
+    if {[string length $fileHeader]} {
+	set fileHeader "#$fileHeader"
+	regsub -all {\n} $fileHeader "\n#" fileHeader
+    } else {
 	set fileHeader $m_propFileHeader
     }
     
-    if {[catch {fileutil::writeFile $propetiesFile $fileHeader}\
+    if {[catch {fileutil::writeFile $m_propertiesFile $fileHeader}\
 						   errorWriteEmptyProps]} then {
-	error "Can't create $propertiesFile: $errorWriteEmptyProps"
+	error "Can't create $m_propertiesFile: $errorWriteEmptyProps"
     }
     
     set m_isProps 1
@@ -350,7 +353,6 @@ itcl::body propFile::setSkelProperties {{fileHeader}} {
 }
 
 itcl::body propFile::defaultFileHeader {} {
-    
     append fileHeader "# file created by [uplevel #0 {info script}]\n" \
 		      "# on [clock format [clock seconds] \
 						-format {%A, %B %d, %y}]\n" \
