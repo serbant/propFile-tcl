@@ -108,7 +108,7 @@ itcl::class propFile {
     
     # public methods
     public method getProperty             {key}
-    public method setProperties           {listKeysValues {fileHeader}}
+    public method setProperties           {listKeysValues {fileHeader ""}}
     public method setProperty             {listKeyValue}
     public method setSkelProperties       {{fileHeader ""}}
     
@@ -337,11 +337,12 @@ itcl::body propFile::setSkelProperties {{fileHeader ""}} {
     if {[string length $fileHeader]} {
 	set fileHeader "#$fileHeader"
 	regsub -all {\n} $fileHeader "\n#" fileHeader
+	set fileHeader "$fileHeader\n"
     } else {
 	set fileHeader $m_propFileHeader
     }
     
-    if {[catch {fileutil::writeFile $m_propertiesFile $fileHeader}\
+    if {[catch {fileutil::writeFile $m_propertiesFile $fileHeader} \
 						   errorWriteEmptyProps]} then {
 	error "Can't create $m_propertiesFile: $errorWriteEmptyProps"
     }
@@ -350,6 +351,50 @@ itcl::body propFile::setSkelProperties {{fileHeader ""}} {
     set m_hasProps 0
     
     return -code ok 1
+}
+
+itcl::body propFile::setProperties {listKeysValues {fileHeader ""}} {
+    
+    if {$m_hasProps} {
+	if {[catch {file copy -force $m_propertiesFile \
+				     "$m_propertiesFile\.orig"} errorBackup]} {
+	    error "Can't backup the original properties in $m_propertiesFile: \
+								   $errorBackup"
+	}
+    }
+    
+    if {[string length $fileHeader]} {
+	set fileHeader "#$fileHeader"
+	regsub -all {\n} $fileHeader "\n#" fileHeader
+	set fileHeader "$fileHeader\n"
+    } else {
+	set fileHeader $m_propFileHeader
+    }
+    
+    if {[catch {fileutil::writeFile $m_propertiesFile $fileHeader} \
+						   errorWriteEmptyProps]} then {
+	error "Can't create $m_propertiesFile: $errorWriteEmptyProps"
+    }
+    
+    if {[catch {array set arrKeysValues $listKeysValues} errorProps]} {
+	error "List of property value pairs is not properly formatted: \
+	  $errorProps.\nUse the rules associated with array set arrayname list"
+    }
+    
+    set listKeys [array names arrKeysValues]
+    
+    foreach key $listKeys {
+	fileutil::appendToFile $m_propertiesFile \
+				 "$key$m_defaultSeparator$arrKeysValues($key)\n"
+    }
+    
+    set m_isProps 1
+    set m_hasProps 1
+    set m_listProps $listKeys
+    set m_listPropsValues $listKeysValues
+    
+    return -code ok 1
+    
 }
 
 itcl::body propFile::defaultFileHeader {} {
