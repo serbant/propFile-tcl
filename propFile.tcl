@@ -117,6 +117,7 @@ itcl::class propFile {
     private method hasProperties          {propertiesFile}
     private method getProperties          {propertiesFile}
     private method defaultFileHeader      {}
+    private method writePropFile          {}
 	
     # public variables
     public variable propertiesFile        ""
@@ -169,11 +170,15 @@ itcl::body propFile::constructor {propertiesFile args} {
     eval configure $args
     
     set m_propFileHeader [defaultFileHeader]
+    
     if { [isProperties $propertiesFile $force] } {
-	hasProperties $propertiesFile
+	file copy -force $m_propertiesFile \
+			"$m_propertiesFile\.[clock format \
+					[clock seconds] -format {%y%m%d%H%M%S}]"
+	hasProperties $m_propertiesFile
     }
     # remove next line when done debugging
-    puts "===>\nchecking variables at the end of the constructor:\n \
+    # puts "===>\nchecking variables at the end of the constructor:\n \
 	  propertiesFile: $m_propertiesFile\n \
 	  m_isProps: $m_isProps\n \
 	  m_hasProps: $m_hasProps\n \
@@ -243,8 +248,6 @@ itcl::body propFile::hasProperties {propertiesFile} {
 
 itcl::body propFile::getProperty {key} {
     
-    # remove when doen debugging
-    #puts "getProperty:\n\tlooking for $key\n\t in $m_propertiesFile\n\tm_hasProps is $m_hasProps\n\t listProps is [join $m_listProps \n]"
     if !{$m_hasProps} {
 	return -code ok -1; #"no properties in file $m_propertiesFile"
     }
@@ -260,7 +263,6 @@ itcl::body propFile::getProperty {key} {
 itcl::body propFile::getProperties {propertiesFile} {
     
     set listProps ""
-    #set arrPropsValues
     
     if {[catch {set props [fileutil::cat $propertiesFile]} errorProperties]} {
 	# TODO: need to decide on the best way to handle errors in class methods
@@ -355,45 +357,85 @@ itcl::body propFile::setSkelProperties {{fileHeader ""}} {
 
 itcl::body propFile::setProperties {listKeysValues {fileHeader ""}} {
     
-    if {$m_hasProps} {
-	if {[catch {file copy -force $m_propertiesFile \
-				     "$m_propertiesFile\.orig"} errorBackup]} {
-	    error "Can't backup the original properties in $m_propertiesFile: \
-								   $errorBackup"
-	}
-    }
-    
     if {[string length $fileHeader]} {
 	set fileHeader "#$fileHeader"
 	regsub -all {\n} $fileHeader "\n#" fileHeader
 	set fileHeader "$fileHeader\n"
-    } else {
-	set fileHeader $m_propFileHeader
-    }
-    
-    if {[catch {fileutil::writeFile $m_propertiesFile $fileHeader} \
-						   errorWriteEmptyProps]} then {
-	error "Can't create $m_propertiesFile: $errorWriteEmptyProps"
-    }
+	set m_propFileHeader $fileHeader
+    }    
     
     if {[catch {array set arrKeysValues $listKeysValues} errorProps]} {
 	error "List of property value pairs is not properly formatted: \
 	  $errorProps.\nUse the rules associated with array set arrayname list"
     }
     
-    set listKeys [array names arrKeysValues]
-    
-    foreach key $listKeys {
-	fileutil::appendToFile $m_propertiesFile \
-				 "$key$m_defaultSeparator$arrKeysValues($key)\n"
-    }
-    
-    set m_isProps 1
+    #set m_isProps 1
     set m_hasProps 1
-    set m_listProps $listKeys
+    set m_listProps [array names arrKeysValues]
     set m_listPropsValues $listKeysValues
     
+    writePropFile
+    
     return -code ok 1
+    
+}
+
+itcl::body propFile::setProperty {listKeyValue} {
+    if {[llength $listKeyValue] == 0} {
+	error "empty property value pair"
+    }
+    
+    if {[llength $listKeyValue] > 2} {
+	error "input list can't have more than 2 entries: $listKeyValue"
+    }
+    
+    if {[llength $listKeyValue] == 1} {
+	lappend listKeyValue ""
+    }
+    
+    puts "in setProperty, trying to set $listKeyValue"
+    set idxKey [lsearch -exact $m_listPropsValues [lindex $listKeyValue 0]]
+    if {$idxKey != -1} {
+	puts "property exists"
+	set idxReplace [expr { 1 + $idxKey } ]
+	set m_listPropsValues [lreplace $m_listPropsValues \
+			       $idxReplace $idxReplace [lindex $listKeyValue 1]]
+	set m_hasProps 1
+	return -code ok 1
+    }
+    
+    set m_listPropsValues [concat $m_listPropsValues $listKeyValue]
+    array set arrListPropsVals $m_listPropsValues
+    set m_listProps [array names arrListPropsVals]
+    
+    writePropFile
+    
+    return -code ok 1
+}
+
+itcl::body propFile::writePropFile {} {
+    if {$m_hasProps && $m_isProps} {
+	if {[catch {file copy -force $m_propertiesFile \
+		 "$m_propertiesFile\.orig"} errorBackup]} {
+	    error "Can't backup the original properties in $m_propertiesFile: \
+	    $errorBackup"
+	}
+    }
+    
+    if {[catch {fileutil::writeFile $m_propertiesFile $m_propFileHeader} \
+	 errorWriteEmptyProps]} then {
+	error "Can't create $m_propertiesFile: $errorWriteEmptyProps"
+    }
+    
+    if {[catch {array set arrKeysValues $m_listPropsValues} errorProps]} {
+	error "List of property value pairs is not properly formatted: \
+	$errorProps.\nUse the rules associated with array set arrayname list"
+    }    
+    
+    foreach key $m_listProps {
+	fileutil::appendToFile $m_propertiesFile \
+	"$key$m_defaultSeparator$arrKeysValues($key)\n"
+    }    
     
 }
 
