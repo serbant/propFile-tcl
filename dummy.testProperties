@@ -1,0 +1,121 @@
+# first comment line
+# second comment line
+01RandomProp = aRandomPropValue
+
+####
+#####
+!!!!
+!!!!!
+02PropWithNoValue
+03PropWithNoValueSepSpace 
+04PropWithNoValueSepSpaces         
+####
+####
+05PropWithNoValueSepTab	
+06PropWithNoValueSepTabs		
+####	
+07PropWithNoValueSepEq=
+08PropWithNoValueSepEqWithSpaceAfter= 
+09PropWithNoValueSepEqWithSpaceBefore =
+10PropWithNoValueSepEqWithSpaceBeforeAndAfter = 
+####
+11PropWithNoValueSepEqWithSpacesAfter=     
+12PropWithNoValueSepEqWithSpacesBefore     =
+13PropWithNoValueSepE1WithSpacesBeforeAndAfter        =         
+####
+14PropWithNoValueSepEqWithTabAfter=	
+15PropWithNoValueSepEqWithTabBefore	=
+16PropWithNoValueSepEqWithTabBeforeAndAfter	=	
+####
+17PropWithNoValueSepTabsAfter=		
+18PropWithNoValueSepTabsBefore		=
+19PropWithNoValueSepTabsBeforeAndAfter		=		
+####
+20PropWithNoValueSepColonNoSpace:
+21PropWithNoValueSepColonSpaceBefore :
+22PropWithNoValueSepColonSpaceAfter: 
+23PropWithNoValueSepColonSpaceBeforeAndAfter :      
+####
+24PropWithNoValueSepEqNoSpace=
+25PropWithNoValueSepEqSpaceBefore     =
+26PropWithNoValueSepEqSpaceAfter=        
+27PropWithNoValueSepEqSpaceBeforeAndAfter      =       
+####
+
+#
+# a random comment and the empty line above
+28RandomPropToTrackAnEmptyLine = see empty empty line above
+29propWithColon : with colon
+30propWithWhiteSpace	White Space
+31propSplitValue = This \
+					is \
+					a \
+					long \
+					property value
+32and\\ a\\:tricky\\=\\ one must have spaces and \
+					this \
+					no?
+					
+! a bang comment line
+# second comment line
+	33PropWithSpaceBefore = andAPropertyWithSpaceBefore
+34anotherRandomProp = anotherRandomPropValue
+
+!
+! a random comment and the empty line above
+    # and an indented comment
+    ! and another indented comment
+
+35PropEmptyLineAbove = anEmtpyLineAbove
+
+
+36Prop3EmptyLinesAbove = threeEmptyLinesAbove
+37Prop4emptyLinesBelow = 4emptyLinesBelow
+
+##comment with double pound
+
+
+####=====>####
+#embed shit
+38\\:\\ \\=propWithEmbeddedStuffColon	: and some crazy ass : shit = \
+											dummyo,=: dummyo \
+											and a final dummyo =: \	
+											
+####
+39PropWithNoValue
+40PropWithNoValueSepSpace value, value, value
+41PropWithNoValueSepSpaces         value, value, value
+####
+####
+42PropWithNoValueSepTab	value, value, value
+43PropWithNoValueSepTabs		value, value, value
+####	
+44PropWithNoValueSepEq=value, value, value
+45PropWithNoValueSepEqWithSpaceAfter= value, value, value
+46PropWithNoValueSepEqWithSpaceBefore =value, value, value
+47PropWithNoValueSepEqWithSpaceBeforeAndAfter = value, value, value
+####
+48PropWithNoValueSepEqWithSpacesAfter=     value, value, value
+49PropWithNoValueSepEqWithSpacesBefore     =value, value, value
+50PropWithNoValueSepE1WithSpacesBeforeAndAfter        =         value, value, value
+####
+51PropWithNoValueSepEqWithTabAfter=	value, value, value
+52PropWithNoValueSepEqWithTabBefore	=value, value, value
+53PropWithNoValueSepEqWithTabBeforeAndAfter	=	value, value, value
+####
+54PropWithNoValueSepTabsAfter=		value, value, value
+55PropWithNoValueSepTabsBefore		=value, value, value
+56PropWithNoValueSepTabsBeforeAndAfter		=		value, value, value
+####
+57PropWithNoValueSepColonNoSpace:value, value, value
+58PropWithNoValueSepColonSpaceBefore :value, value, value
+59PropWithNoValueSepColonSpaceAfter: value, value, value
+60PropWithNoValueSepColonSpaceBeforeAndAfter :      value, value, value
+####
+61PropWithNoValueSepEqNoSpace=value, value, value
+62PropWithNoValueSepEqSpaceBefore     =value, value, value
+63PropWithNoValueSepEqSpaceAfter=        value, value, value
+64PropWithNoValueSepEqSpaceBeforeAndAfter      =       value, value, value
+####    
+!!!! wtf
+				
