@@ -102,17 +102,20 @@ itcl::class propFile {
     # accessor methods
     public method isProps                 {} {return $m_isProps}
     public method hasProps                {} {return $m_hasProps}
+    public method getProps                {} {return $m_listPropsValues}
+    public method getPropKeys             {} {return $m_listProps}
+    public method getPropFile             {} {return $m_propertiesFile}
     
     # public methods
-    public method getProperties           {}
     public method getProperty             {key}
-    public method setProperties           {arrayKeysValues {fileHeader ""}}
+    public method setProperties           {listKeysValues {fileHeader}}
     public method setProperty             {listKeyValue}
-    public method setSkelProperties       {}
+    public method setSkelProperties       {{fileHeader}}
     
     # private methods
-    private method isProperties           {}
-    private method hasProperties          {}
+    private method isProperties           {propertiesFile {force 0}}
+    private method hasProperties          {propertiesFile}
+    private method getProperties          {propertiesFile}
     private method defaultFileHeader      {}
 	
     # public variables
@@ -120,13 +123,14 @@ itcl::class propFile {
     public variable force                 0
     
     # private variables
+    private variable m_propertiesFile ""
     private variable m_isProps            0
     private variable m_hasProps           0
     private variable m_osFilePathFragment ""
     private variable m_ext                "\.properties"
     private variable m_propFileHeader     ""
     private variable m_listProps          ""
-    private variable m_arrayPropsValues   ""
+    private variable m_listPropsValues    ""
     private variable m_defaultSeparator   ": "
     
     
@@ -160,28 +164,38 @@ itcl::body propFile::constructor {propertiesFile args} {
 	set m_osFilePathFragment "$envAPPDATA/"
     }
     
-    if {[string trim [string length $propertiesFile]] == 0} {
+    if {[string length [string trim $propertiesFile]] == 0} {
 	error "-propertiesFile cannot be empty"
     }
     
     eval configure $args
     
     set m_propFileHeader [defaultFileHeader]
-    
-    if { [isProperties] } {
-	hasProperties
+    if { [isProperties $propertiesFile $force] } {
+	hasProperties $propertiesFile
     }
+    # remove next line when done debugging
+    puts "===>\nchecking variables at the end of the constructor:\n \
+	  propertiesFile: $m_propertiesFile\n \
+	  m_isProps: $m_isProps\n \
+	  m_hasProps: $m_hasProps\n \
+	  m_listProps: [split $m_listProps]\n \
+	  m_listPropsValues: [split $m_listPropsValues]\n<==="
     
 }
 
-itcl::body propFile::isProperties {} {
+itcl::body propFile::isProperties {propertiesFile {force 0}} {
     
     if { $force } {
+	set m_propertiesFile $propertiesFile
+	
 	if {[fileutil::test $propertiesFile efr errorPropFile]} {
-	    return -code ok 1
 	    set m_isProps 1
+	    return -code ok 1
+	    
 	} else {
-	    error $errorPropFile
+	    set m_isProps 0
+	    return -code ok 0
 	}
     }
     
@@ -190,50 +204,65 @@ itcl::body propFile::isProperties {} {
 			    [fileutil::fullnormalize [fileutil::lexnormalize \
 			    "[pwd]/$propertiesFile"]] \
 			    [fileutil::fullnormalize [fileutil::lexnormalize \
-			    "$m_osFilePathFragment$fileName/$propertiesFile"]] \
+		      "$m_osFilePathFragment$propertiesFile/$propertiesFile"]] \
 			    [fileutil::fullnormalize [fileutil::lexnormalize \
 	  "$m_osFilePathFragment$propertiesFile/$propertiesFile\.properties"]] \
 			    [fileutil::fullnormalize [fileutil::lexnormalize \
 	      "$m_osFilePathFragment$propertiesFile/$propertiesFile\.config"]] \
 			    [fileutil::fullnormalize [fileutil::lexnormalize \
 		 "$m_osFilePathFragment$propertiesFile/$propertiesFile\.cfg"]]]
-    set listErrors [list]
     
     foreach propsFile $listLocations {
-	
 	if {[fileutil::test $propsFile efr errorPropFile]} {
-	    set propertiesFile $propsFile
+	    set m_propertiesFile $propsFile
 	    set m_isProps 1
 	    return -code ok 1
-	} else {
-	    lappend listErrors $errorPropFile
 	}
     }
     
+    set m_propertiesFile \
+		    "$m_osFilePathFragment$propertiesFile/$propertiesFile$m_ext"
     set m_isProps 0
     return -code ok 0
     
 }
 
-itcl::body propFile::hasProperties {} {
+itcl::body propFile::hasProperties {propertiesFile} {
     
-    set props [getProperties]
+    set props [getProperties $propertiesFile]
     
     # are there any properties left? if not, let's bail
     if {[string length [string trim $props "# ! \t \n"]]} {
-	set m_hasProperties 1
+	set m_hasProps 1
 	return -code ok 1
     }
     
-    set m_hasProperties 0
+    set m_hasProps 0
     
     return -code ok 0
     
 }
 
-itcl::body propFile::getProperties {} {
+itcl::body propFile::getProperty {key} {
+    
+    # remove when doen debugging
+    #puts "getProperty:\n\tlooking for $key\n\t in $m_propertiesFile\n\tm_hasProps is $m_hasProps\n\t listProps is [join $m_listProps \n]"
+    if !{$m_hasProps} {
+	return -code ok -1; #"no properties in file $m_propertiesFile"
+    }
+    
+    if {[lsearch -exact $m_listProps $key] == -1} {
+	return -code ok 0; #"no property $key in file $m_propertiesFile"
+    }
+    
+    array set arrPropsVals $m_listPropsValues
+    return -code ok $arrPropsVals($key)
+}
+
+itcl::body propFile::getProperties {propertiesFile} {
     
     set listProps ""
+    #set arrPropsValues
     
     if {[catch {set props [fileutil::cat $propertiesFile]} errorProperties]} {
 	# TODO: need to decide on the best way to handle errors in class methods
@@ -248,42 +277,68 @@ itcl::body propFile::getProperties {} {
     # to clean up comments use
     regsub -all {[#!].*?\n} $props {} props
     
-    puts "props is: $props"
-    
     foreach pair [split $props \n] {
 	
-	# if we have escaped property keys, we need to start looking for the
+	# - if we have escaped property keys, we need to start looking for the
 	# index of the separator beyond the index of the last escaped char
-	# hmmm, it looks like it will work if we escape using Tcl style "\\"
-	# so the starting index to look for a separator using string first
+	# - it will work if we escape using Tcl style "\\"
+	# - the starting index to look for a separator using string first
 	# would the last index associated with an \\ + 1 as returned by
-	# string last; let's check
+	# string last
 	
-	puts "propValue is: $pair"
+	if {[string length [string trim $pair "\t \= \:"]] == 0} {continue}
+	
 	set idxStartFirst 0
-	if {[string last "\\" $pair] > -1} {
-	    set idxStartFirst [expr { 1 + [string last "\\" $pair] }]
-	}
-	set idxSeparator [expr {min([string first " " $pair $idxStartFirst], \
-				    [string first "=" $pair $idxStartFirst], \
-				    [string first ":" $pair $idxStartFirst])}]
+	set pair [string trim $pair]
+	set pair [string map {"\\ " "" "\\=" "" "\\:" "" "\\" ""} $pair]
+		
+	set listIdx [lsort -integer -increasing \
+			   [list [string first " " $pair $idxStartFirst] \
+				 [string first "\t" $pair $idxStartFirst] \
+				 [string first "=" $pair $idxStartFirst] \
+				 [string first ":" $pair $idxStartFirst]]]
 	
-	lappend listProps [string trim [string range $pair 0 $idxSeparator]] \
-			  [string trim [string range $pair $idxSeparator end]]
+	if {[lindex $listIdx 0] == -1} {
+	    if {[lindex $listIdx 1] == -1} {
+		if {[lindex $listIdx 2] == -1} {
+		    if {[lindex $listIdx 3] == -1} {
+			set idxSeparator -1
+			lappend listProps [string trim $pair] ""
+			#puts "listProps is: $listProps"
+			continue
+		    } else {
+			set idxSeparator [lindex $listIdx 3]
+		    }
+		} else {
+		    set idxSeparator [lindex $listIdx 2]
+		}
+	    } else {
+		set idxSeparator [lindex $listIdx 1]
+	    }
+	} else {
+	    set idxSeparator [lindex $listIdx 0]
+	}
+	lappend listProps \
+		 [string trim [string range $pair 0 $idxSeparator] "\= \: \t"] \
+		 [string trim [string range $pair $idxSeparator end] "\= \: \t"]
+	
     }
     
-    array set m_arrayPropsValues $listProps
+    set m_listPropsValues $listProps
+    array set arrPropsValues $m_listPropsValues
+    set m_listProps [array names arrPropsValues]
     
-    set m_listProps [array names m_arrayPropsValues]
-    
-    return -code ok $m_arrayPropsValues
-	
-	
+    return -code ok $m_listPropsValues
+	    
 }
 
-itcl::body propFile::setSkelProperties {} {
+itcl::body propFile::setSkelProperties {{fileHeader}} {
     
-    if {[catch {fileutil::writeFile $propetiesFile $m_propFileHeader}\
+    if {[string length $fileHeader] == 0} {
+	set fileHeader $m_propFileHeader
+    }
+    
+    if {[catch {fileutil::writeFile $propetiesFile $fileHeader}\
 						   errorWriteEmptyProps]} then {
 	error "Can't create $propertiesFile: $errorWriteEmptyProps"
     }
